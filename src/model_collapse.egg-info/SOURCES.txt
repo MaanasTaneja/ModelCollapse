@@ -1,0 +1,11 @@
+README.md
+pyproject.toml
+src/model_collapse/__init__.py
+src/model_collapse/data_utils.py
+src/model_collapse/eval_utils.py
+src/model_collapse/synth_templates.py
+src/model_collapse.egg-info/PKG-INFO
+src/model_collapse.egg-info/SOURCES.txt
+src/model_collapse.egg-info/dependency_links.txt
+src/model_collapse.egg-info/requires.txt
+src/model_collapse.egg-info/top_level.txt

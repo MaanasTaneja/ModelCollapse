@@ -1,0 +1,76 @@
+
+[2026-04-19 13:17:08] Pipeline configuration
+ROOT_DIR=/Users/maanastaneja/Documents/College Files/Undergrads/Projects/Programming/Machine Learning/model_collapse
+PYTHON_BIN=python3
+VENV_DIR=.venv
+DATA_MODE=hf
+DATASET_NAME=bigcode/the-stack-dedup
+DATASET_CONFIG=
+DATASET_DATA_DIRS=data/python data/javascript data/typescript data/java data/c data/cpp data/go data/rust data/solidity data/cuda data/assembly data/shell
+DATASET_SPLIT=train
+TEXT_COLUMN=content
+LANGUAGE_COLUMN=lang
+LANGUAGES=Python JavaScript TypeScript Java C C++ Go Rust Solidity CUDA Assembly Shell
+LANGUAGE_QUOTAS=Python=0.21 JavaScript=0.15 TypeScript=0.13 Java=0.12 C=0.08 C++=0.08 Go=0.06 Rust=0.05 Solidity=0.05 CUDA=0.04 Assembly=0.02 Shell=0.01
+TAIL_EVAL_LANGUAGES=Java C C++ Go Rust Solidity CUDA Assembly
+LOCAL_GLOBS=
+SYNTH_BACKEND=openai
+SYNTH_MODEL=gpt-4o-mini
+SYNTH_TARGET_SAMPLES=12000
+OPENAI_MAX_NEW_TOKENS=220
+CONFIG_PATH=configs/experiment.yaml
+INSPECT_HF_SCHEMA=0
+PIPELINE_LOG_PATH=artifacts/logs/pipeline_20260419_131708.log
+
+[2026-04-19 13:17:08] Skipping dependency installation because INSTALL_DEPS=0
+
+[2026-04-19 13:17:08] Skipping Hugging Face schema inspection because INSPECT_HF_SCHEMA=0
+
+[2026-04-19 13:17:08] Preparing clean corpus from Hugging Face dataset
+Collecting Hugging Face code from bigcode/the-stack-dedup (split=train, data_dirs=['data/python', 'data/javascript', 'data/typescript', 'data/java', 'data/c', 'data/cpp', 'data/go', 'data/rust', 'data/solidity', 'data/cuda', 'data/assembly', 'data/shell'])
+Using weighted language targets: assembly=336, c=1344, c++=1344, cuda=672, go=1008, java=2016, javascript=2520, python=3528, rust=840, shell=168, solidity=840, typescript=2184
+Streaming dataset shard: data/python
+Collected 500/16800 examples so far
+Language progress: assembly=0/336, c=0/1344, c++=0/1344, cuda=0/672, go=0/1008, java=0/2016, javascript=0/2520, python=500/3528, rust=0/840, shell=0/168, solidity=0/840, typescript=0/2184
+Collected 1000/16800 examples so far
+Language progress: assembly=0/336, c=0/1344, c++=0/1344, cuda=0/672, go=0/1008, java=0/2016, javascript=0/2520, python=1000/3528, rust=0/840, shell=0/168, solidity=0/840, typescript=0/2184
+Collected 1500/16800 examples so far
+Language progress: assembly=0/336, c=0/1344, c++=0/1344, cuda=0/672, go=0/1008, java=0/2016, javascript=0/2520, python=1500/3528, rust=0/840, shell=0/168, solidity=0/840, typescript=0/2184
+Collected 2000/16800 examples so far
+Language progress: assembly=0/336, c=0/1344, c++=0/1344, cuda=0/672, go=0/1008, java=0/2016, javascript=0/2520, python=2000/3528, rust=0/840, shell=0/168, solidity=0/840, typescript=0/2184
+Collected 2500/16800 examples so far
+Language progress: assembly=0/336, c=0/1344, c++=0/1344, cuda=0/672, go=0/1008, java=0/2016, javascript=0/2520, python=2500/3528, rust=0/840, shell=0/168, solidity=0/840, typescript=0/2184
+Collected 3000/16800 examples so far
+Language progress: assembly=0/336, c=0/1344, c++=0/1344, cuda=0/672, go=0/1008, java=0/2016, javascript=0/2520, python=3000/3528, rust=0/840, shell=0/168, solidity=0/840, typescript=0/2184
+Collected 3500/16800 examples so far
+Language progress: assembly=0/336, c=0/1344, c++=0/1344, cuda=0/672, go=0/1008, java=0/2016, javascript=0/2520, python=3500/3528, rust=0/840, shell=0/168, solidity=0/840, typescript=0/2184
+Traceback (most recent call last):
+  File "/Users/maanastaneja/Documents/College Files/Undergrads/Projects/Programming/Machine Learning/model_collapse/scripts/prepare_clean_corpus.py", line 169, in <module>
+    main()
+  File "/Users/maanastaneja/Documents/College Files/Undergrads/Projects/Programming/Machine Learning/model_collapse/scripts/prepare_clean_corpus.py", line 61, in main
+    raw_examples = collect_hf_code(
+                   ^^^^^^^^^^^^^^^^
+  File "/Users/maanastaneja/Documents/College Files/Undergrads/Projects/Programming/Machine Learning/model_collapse/src/model_collapse/data_utils.py", line 233, in collect_hf_code
+    ) -> list[CodeExample]:
+                       ^^^^
+  File "/Users/maanastaneja/Documents/College Files/Undergrads/Projects/Programming/Machine Learning/model_collapse/.venv/lib/python3.12/site-packages/datasets/iterable_dataset.py", line 2690, in __iter__
+    for key, example in ex_iterable:
+                        ^^^^^^^^^^^
+  File "/Users/maanastaneja/Documents/College Files/Undergrads/Projects/Programming/Machine Learning/model_collapse/.venv/lib/python3.12/site-packages/datasets/iterable_dataset.py", line 2227, in __iter__
+    for key, pa_table in self._iter_arrow():
+                         ^^^^^^^^^^^^^^^^^^
+  File "/Users/maanastaneja/Documents/College Files/Undergrads/Projects/Programming/Machine Learning/model_collapse/.venv/lib/python3.12/site-packages/datasets/iterable_dataset.py", line 2253, in _iter_arrow
+    schema = self.features.arrow_schema
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/maanastaneja/Documents/College Files/Undergrads/Projects/Programming/Machine Learning/model_collapse/.venv/lib/python3.12/site-packages/datasets/features/features.py", line 1921, in arrow_schema
+    return pa.schema(self.type).with_metadata({"huggingface": json.dumps(hf_metadata)})
+                     ^^^^^^^^^
+  File "/Users/maanastaneja/Documents/College Files/Undergrads/Projects/Programming/Machine Learning/model_collapse/.venv/lib/python3.12/site-packages/datasets/features/features.py", line 1910, in type
+    return get_nested_type(self)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/maanastaneja/Documents/College Files/Undergrads/Projects/Programming/Machine Learning/model_collapse/.venv/lib/python3.12/site-packages/datasets/features/features.py", line 1402, in get_nested_type
+    return pa.struct(
+           ^^^^^^^^^^
+  File "pyarrow/types.pxi", line 5335, in pyarrow.lib.struct
+  File "<frozen abc>", line 117, in __instancecheck__
+KeyboardInterrupt
