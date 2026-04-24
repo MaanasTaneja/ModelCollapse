@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -118,6 +119,9 @@ def main() -> None:
                 **metrics,
             }
         )
+        if model_dir.exists():
+            shutil.rmtree(model_dir)
+            print(f"Deleted temporary model directory {model_dir}", flush=True)
         print(f"Finished mixture {mixture['name']}", flush=True)
 
     summary_path = output_root / "summary.json"

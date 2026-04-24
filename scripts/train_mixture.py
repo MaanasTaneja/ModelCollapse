@@ -116,8 +116,7 @@ def main() -> None:
         weight_decay=args.weight_decay,
         warmup_ratio=args.warmup_ratio,
         logging_steps=args.logging_steps,
-        save_steps=args.save_steps,
-        save_total_limit=1,
+        save_strategy="no",
         report_to=[],
         seed=args.seed,
         dataloader_num_workers=0,
@@ -133,7 +132,7 @@ def main() -> None:
     )
     print(
         f"Starting training for {args.max_train_steps} steps "
-        f"(logging every {args.logging_steps}, saving every {args.save_steps})",
+        f"(logging every {args.logging_steps}, no intermediate checkpoints)",
         flush=True,
     )
     trainer.train()

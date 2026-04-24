@@ -55,6 +55,14 @@ def append_jsonl(path: str | Path, rows: list[dict]) -> None:
             handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
+def count_existing_rows(path: str | Path) -> int:
+    path = Path(path)
+    if not path.exists():
+        return 0
+    with path.open("r", encoding="utf-8") as handle:
+        return sum(1 for line in handle if line.strip())
+
+
 def write_progress(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
@@ -68,24 +76,29 @@ def maybe_report_progress(
     backend: str,
     generator_model: str,
     started_at: float,
+    existing_samples: int = 0,
     force: bool = False,
 ) -> None:
-    if not rows:
+    total_rows = existing_samples + len(rows)
+    if total_rows == 0:
         return
-    if not force and len(rows) % progress_every != 0 and len(rows) != target_samples:
+    if not force and total_rows % progress_every != 0 and total_rows != target_samples:
         return
     elapsed = max(time.time() - started_at, 1e-9)
-    rate = len(rows) / elapsed
-    remaining = max(target_samples - len(rows), 0)
-    eta_seconds = remaining / rate if rate > 0 else None
+    session_rate = len(rows) / elapsed if rows else 0.0
+    remaining = max(target_samples - total_rows, 0)
+    rate_for_eta = session_rate if session_rate > 0 else None
+    eta_seconds = remaining / rate_for_eta if rate_for_eta else None
     payload = {
         "backend": backend,
         "generator_model": generator_model,
         "target_samples": target_samples,
-        "samples_written": len(rows),
-        "percent_complete": round((len(rows) / target_samples) * 100, 2) if target_samples else 100.0,
+        "samples_written": total_rows,
+        "existing_samples": existing_samples,
+        "new_samples_this_session": len(rows),
+        "percent_complete": round((total_rows / target_samples) * 100, 2) if target_samples else 100.0,
         "elapsed_seconds": round(elapsed, 2),
-        "samples_per_second": round(rate, 4),
+        "samples_per_second": round(session_rate, 4),
         "eta_seconds": None if eta_seconds is None else round(eta_seconds, 2),
         "output_path": str(progress_path.with_suffix("")),
         "updated_at_epoch": round(time.time(), 3),
@@ -93,10 +106,15 @@ def maybe_report_progress(
     write_progress(progress_path, payload)
     eta_text = "unknown" if eta_seconds is None else f"{eta_seconds / 60:.1f} min"
     print(
-        f"[progress] synthetic generation: {len(rows)}/{target_samples} "
-        f"({payload['percent_complete']:.2f}%) at {rate:.2f} samples/s, ETA {eta_text}",
+        f"[progress] synthetic generation: {total_rows}/{target_samples} "
+        f"({payload['percent_complete']:.2f}%) at {session_rate:.2f} samples/s, ETA {eta_text}",
         flush=True,
     )
+
+
+def prepare_output_path(output_path: Path) -> int:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    return count_existing_rows(output_path)
 
 
 def build_prompts() -> list[tuple[str, str]]:
@@ -149,10 +167,31 @@ def generate_with_hf(args: argparse.Namespace) -> list[dict]:
     rows = []
     progress_path = Path(f"{args.output_path}.progress.json")
     output_path = Path(args.output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text("", encoding="utf-8")
+    existing_samples = prepare_output_path(output_path)
+    if existing_samples >= args.target_samples:
+        print(
+            f"Found existing synthetic corpus with {existing_samples} rows; target {args.target_samples} already satisfied.",
+            flush=True,
+        )
+        maybe_report_progress(
+            rows=[],
+            target_samples=args.target_samples,
+            progress_every=args.progress_every,
+            progress_path=progress_path,
+            backend="hf",
+            generator_model=args.generator_model,
+            started_at=time.time(),
+            existing_samples=existing_samples,
+            force=True,
+        )
+        return []
+    print(
+        f"Found existing synthetic corpus with {existing_samples} rows; generating "
+        f"{args.target_samples - existing_samples} additional samples.",
+        flush=True,
+    )
     started_at = time.time()
-    while len(rows) < args.target_samples:
+    while existing_samples + len(rows) < args.target_samples:
         random.shuffle(prompts)
         for language, prompt in prompts:
             encoded = tokenizer(prompt, return_tensors="pt").to(device)
@@ -182,8 +221,9 @@ def generate_with_hf(args: argparse.Namespace) -> list[dict]:
                 backend="hf",
                 generator_model=args.generator_model,
                 started_at=started_at,
+                existing_samples=existing_samples,
             )
-            if len(rows) >= args.target_samples:
+            if existing_samples + len(rows) >= args.target_samples:
                 break
     maybe_report_progress(
         rows=rows,
@@ -193,6 +233,7 @@ def generate_with_hf(args: argparse.Namespace) -> list[dict]:
         backend="hf",
         generator_model=args.generator_model,
         started_at=started_at,
+        existing_samples=existing_samples,
         force=True,
     )
     return rows
@@ -212,8 +253,29 @@ def generate_with_openai(args: argparse.Namespace) -> list[dict]:
     rows = []
     progress_path = Path(f"{args.output_path}.progress.json")
     output_path = Path(args.output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text("", encoding="utf-8")
+    existing_samples = prepare_output_path(output_path)
+    if existing_samples >= args.target_samples:
+        print(
+            f"Found existing synthetic corpus with {existing_samples} rows; target {args.target_samples} already satisfied.",
+            flush=True,
+        )
+        maybe_report_progress(
+            rows=[],
+            target_samples=args.target_samples,
+            progress_every=args.progress_every,
+            progress_path=progress_path,
+            backend="openai",
+            generator_model=args.generator_model,
+            started_at=time.time(),
+            existing_samples=existing_samples,
+            force=True,
+        )
+        return []
+    print(
+        f"Found existing synthetic corpus with {existing_samples} rows; generating "
+        f"{args.target_samples - existing_samples} additional samples.",
+        flush=True,
+    )
     started_at = time.time()
     print(
         f"Starting OpenAI synthetic generation for {args.target_samples} samples with progress updates every "
@@ -221,7 +283,7 @@ def generate_with_openai(args: argparse.Namespace) -> list[dict]:
         flush=True,
     )
     print(f"Progress file: {progress_path}", flush=True)
-    while len(rows) < args.target_samples:
+    while existing_samples + len(rows) < args.target_samples:
         random.shuffle(prompts)
         for language, prompt in prompts:
             response = client.responses.create(
@@ -249,8 +311,9 @@ def generate_with_openai(args: argparse.Namespace) -> list[dict]:
                 backend="openai",
                 generator_model=args.generator_model,
                 started_at=started_at,
+                existing_samples=existing_samples,
             )
-            if len(rows) >= args.target_samples:
+            if existing_samples + len(rows) >= args.target_samples:
                 break
     maybe_report_progress(
         rows=rows,
@@ -260,6 +323,7 @@ def generate_with_openai(args: argparse.Namespace) -> list[dict]:
         backend="openai",
         generator_model=args.generator_model,
         started_at=started_at,
+        existing_samples=existing_samples,
         force=True,
     )
     return rows
@@ -267,27 +331,50 @@ def generate_with_openai(args: argparse.Namespace) -> list[dict]:
 
 def main() -> None:
     args = parse_args()
+    existing_samples = count_existing_rows(args.output_path)
     if args.backend == "template":
-        rows = build_template_corpus(target_samples=args.target_samples)
-        write_jsonl(args.output_path, rows)
+        remaining = max(args.target_samples - existing_samples, 0)
+        if remaining == 0:
+            print(
+                f"Found existing synthetic corpus with {existing_samples} rows; target {args.target_samples} already satisfied.",
+                flush=True,
+            )
+            rows = []
+        else:
+            print(
+                f"Found existing synthetic corpus with {existing_samples} rows; generating "
+                f"{remaining} additional samples.",
+                flush=True,
+            )
+            rows = build_template_corpus(target_samples=remaining)
+            append_jsonl(args.output_path, rows)
         write_progress(
             Path(f"{args.output_path}.progress.json"),
             {
                 "backend": "template",
                 "generator_model": "template",
                 "target_samples": args.target_samples,
-                "samples_written": len(rows),
-                "percent_complete": 100.0,
+                "samples_written": existing_samples + len(rows),
+                "existing_samples": existing_samples,
+                "new_samples_this_session": len(rows),
+                "percent_complete": round(((existing_samples + len(rows)) / args.target_samples) * 100, 2)
+                if args.target_samples
+                else 100.0,
                 "output_path": args.output_path,
             },
         )
     elif args.backend == "hf":
         rows = generate_with_hf(args)
-        Path(f"{args.output_path}.complete").write_text("ok\n", encoding="utf-8")
     else:
         rows = generate_with_openai(args)
+    total_rows = count_existing_rows(args.output_path)
+    if total_rows >= args.target_samples:
         Path(f"{args.output_path}.complete").write_text("ok\n", encoding="utf-8")
-    print(f"Wrote {len(rows)} synthetic samples to {args.output_path}")
+    print(
+        f"Synthetic corpus now has {total_rows} samples at {args.output_path} "
+        f"(added {len(rows)} this session)",
+        flush=True,
+    )
 
 
 if __name__ == "__main__":

@@ -1,2 +1,12 @@
 .venv/
 .env
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Generated experiment outputs
+artifacts/
